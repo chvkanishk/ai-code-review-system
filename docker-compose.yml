@@ -1,41 +1,91 @@
 version: '3.8'
 
 services:
+  # Redis - Message Queue
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: code-review-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - code-review-net
 
+  # PostgreSQL - Database
   postgres:
     image: postgres:15-alpine
     container_name: code-review-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: code_review
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev_password
     ports:
       - "5432:5432"
-  
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - code-review-net
 
+  # API Gateway (we'll build this next)
   api-gateway:
-    build: ./api-gateway
-    container_name: code-review-api-gateway
-    environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:dev123@postgres:5432/code_review
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - redis
-      - postgres
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: code-review-api
     ports:
       - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=dev_password
+      - POSTGRES_DB=code_review
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./api-gateway/app:/app/app
+      - ./shared:/app/shared
+    networks:
+      - code-review-net
 
+  # Worker (we'll build this too)
   worker:
-    build: ./worker
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
     container_name: code-review-worker
     environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:dev123@postgres:5432/code_review
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=dev_password
+      - POSTGRES_DB=code_review
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./worker/app:/app/app
+      - ./shared:/app/shared
+    networks:
+      - code-review-net
+
+networks:
+  code-review-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
