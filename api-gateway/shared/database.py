@@ -1,21 +1,19 @@
-# shared/database.py
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, text
-from sqlalchemy.orm import declarative_base, sessionmaker
-from datetime import datetime
-from .config import DATABASE_URL
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/code_review"
+
 
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 Base = declarative_base()
 
-class PRAnalysis(Base):
-    __tablename__ = "pr_analysis"
 
-    id = Column(Integer, primary_key=True, index=True)
-    pr_number = Column(Integer, nullable=False)
-    status = Column(String(50), nullable=False, default="completed")
-    message = Column(String(255), nullable=True)
-    created_at = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
-
-def init_db():
-    Base.metadata.create_all(bind=engine)
+def get_db():
+    """FastAPI dependency that yields a DB session."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

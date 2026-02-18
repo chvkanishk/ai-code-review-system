@@ -12,7 +12,7 @@ services:
     container_name: code-review-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: dev123
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: code_review
     ports:
       - "5432:5432"
