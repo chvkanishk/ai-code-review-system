@@ -17,7 +17,7 @@ class Settings:
     POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
     POSTGRES_DB = os.getenv("POSTGRES_DB", "code_review")
     POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
-    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "dev_password")
     
     # Logging
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

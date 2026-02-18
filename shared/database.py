@@ -48,11 +48,15 @@ def init_db():
 
 def health_check():
     """Check if database is accessible"""
+    db = None
     try:
         db = SessionLocal()
+        # Execute a simple query
         db.execute("SELECT 1")
-        db.close()
         return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
         return False
+    finally:
+        if db:
+            db.close()
