@@ -50,9 +50,10 @@ def health_check():
     """Check if database is accessible"""
     db = None
     try:
+        from sqlalchemy import text
         db = SessionLocal()
-        # Execute a simple query
-        db.execute("SELECT 1")
+        # Use text() wrapper for raw SQL
+        db.execute(text("SELECT 1"))
         return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")

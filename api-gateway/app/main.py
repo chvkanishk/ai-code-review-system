@@ -8,6 +8,7 @@ import logging
 import sys
 from datetime import datetime
 import uuid
+from fastapi.middleware.cors import CORSMiddleware
 
 # Add parent directory to path
 sys.path.append('/app')
@@ -45,6 +46,15 @@ app = FastAPI(
     description="Webhook receiver for GitHub PRs",
     version="0.1.0",
     lifespan=lifespan
+)
+
+# Enable CORS for dashboard
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
