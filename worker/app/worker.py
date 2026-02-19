@@ -25,10 +25,13 @@ class Worker:
     """Worker that processes code review jobs with AI"""
     
     def __init__(self):
+        import os
+        import socket
+        self.worker_id = f"{socket.gethostname()}-{os.getpid()}"
         self.code_analyzer = CodeAnalyzer()
         self.llm_analyzer = LLMAnalyzer()
         self.running = True
-        logger.info("🤖 Worker initialized (Phase 2 - with AI + Caching)")
+        logger.info(f"🤖 Worker {self.worker_id} initialized (Phase 2 - with AI + Caching)")
     
     def process_job(self, job_data):
         """
@@ -46,7 +49,7 @@ class Worker:
         pr_title = job_data.get("pr_title", "Unknown")
         
         logger.info("=" * 60)
-        logger.info(f"⚙️  Processing: PR #{pr_number}")
+        logger.info(f"⚙️  Worker {self.worker_id} processing: PR #{pr_number}")
         logger.info(f"   📝 Title: {pr_title}")
         logger.info(f"   🆔 Job ID: {job_id}")
         
@@ -158,7 +161,7 @@ Details:
     
     def run(self):
         """Main worker loop - runs forever"""
-        logger.info("🚀 Worker started (Phase 2 - AI Enabled with Caching)!")
+        logger.info(f"🚀 Worker {self.worker_id} started!")
         logger.info(f"   📡 Polling queue: {settings.REDIS_QUEUE_NAME}")
         logger.info(f"   ⏱️  Poll interval: 5 seconds")
         logger.info(f"   🔗 Redis: {settings.REDIS_HOST}")
@@ -166,7 +169,7 @@ Details:
         logger.info(f"   🤖 AI Model: codellama")
         logger.info(f"   ⚡ Caching: Enabled (24h TTL)")
         logger.info("")
-        logger.info("⏳ Waiting for jobs...")
+        logger.info(f"⏳ Worker {self.worker_id} waiting for jobs...")
         
         while self.running:
             try:

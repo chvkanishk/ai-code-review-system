@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   # Redis - Message Queue
@@ -65,7 +65,6 @@ services:
     build:
       context: ./worker
       dockerfile: Dockerfile
-    container_name: code-review-worker
     environment:
       - REDIS_HOST=redis
       - POSTGRES_HOST=postgres
@@ -85,6 +84,8 @@ services:
       - ./shared:/app/shared
     networks:
       - code-review-net
+    deploy:
+      replicas: 3
 
 networks:
   code-review-net:
