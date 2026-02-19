@@ -99,18 +99,25 @@ async def github_webhook(request: Request):
         
         logger.info("📨 Webhook received")
         
-        # Extract PR info (simplified for Phase 1)
+        # Extract PR info
         pr_number = payload.get("number", 0)
         pr_title = payload.get("pull_request", {}).get("title", "Unknown")
         action = payload.get("action", "unknown")
         
-        # Create a job
+        # Extract GitHub repository info
+        repo_info = payload.get("repository", {})
+        repo_owner = repo_info.get("owner", {}).get("login", "")
+        repo_name = repo_info.get("name", "")
+        
+        # Create job with GitHub info
         job_id = str(uuid.uuid4())
         job_data = {
             "job_id": job_id,
             "pr_number": pr_number,
             "pr_title": pr_title,
             "action": action,
+            "repo_owner": repo_owner,
+            "repo_name": repo_name,
             "queued_at": datetime.utcnow().isoformat()
         }
         

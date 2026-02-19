@@ -22,6 +22,9 @@ class Settings:
     # Ollama Configuration
     OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
     OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
+
+    # GitHub Configuration - ADD THIS!
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
     
     # Logging
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

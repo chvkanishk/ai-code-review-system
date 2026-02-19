@@ -1,5 +1,5 @@
 """
-Worker - Polls queue and processes jobs with AI
+Worker - Polls queue and processes jobs with AI and GitHub
 """
 import logging
 import sys
@@ -12,6 +12,7 @@ sys.path.append('/app')
 from shared import redis_client, settings, SessionLocal, PRAnalysis
 from app.code_analyzer import CodeAnalyzer
 from app.llm_analyzer import LLMAnalyzer
+from app.github_client import GitHubClient
 
 # Setup logging
 logging.basicConfig(
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class Worker:
-    """Worker that processes code review jobs with AI"""
+    """Worker that processes code review jobs with AI and GitHub"""
     
     def __init__(self):
         import os
@@ -30,12 +31,13 @@ class Worker:
         self.worker_id = f"{socket.gethostname()}-{os.getpid()}"
         self.code_analyzer = CodeAnalyzer()
         self.llm_analyzer = LLMAnalyzer()
+        self.github_client = GitHubClient()
         self.running = True
-        logger.info(f"🤖 Worker {self.worker_id} initialized (Phase 2 - with AI + Caching)")
+        logger.info(f"🤖 Worker {self.worker_id} initialized (Phase 3 - with GitHub)")
     
     def process_job(self, job_data):
         """
-        Process a single job with AI analysis and caching
+        Process a single job with AI analysis, caching, and GitHub integration
         
         Args:
             job_data: Job information from queue
@@ -47,11 +49,15 @@ class Worker:
         job_id = job_data.get("job_id")
         pr_number = job_data.get("pr_number")
         pr_title = job_data.get("pr_title", "Unknown")
+        repo_owner = job_data.get("repo_owner")
+        repo_name = job_data.get("repo_name")
         
         logger.info("=" * 60)
         logger.info(f"⚙️  Worker {self.worker_id} processing: PR #{pr_number}")
         logger.info(f"   📝 Title: {pr_title}")
         logger.info(f"   🆔 Job ID: {job_id}")
+        if repo_owner and repo_name:
+            logger.info(f"   📦 Repo: {repo_owner}/{repo_name}")
         
         try:
             # Create database record
@@ -89,18 +95,27 @@ class Worker:
             # CACHE MISS - Do real analysis
             logger.info(f"   🔍 Running code analysis...")
             
-            # Sample code to analyze
-            sample_code = f"""
-def process_user_login(username):
-    password = "hardcoded123"  # TODO: Move to environment variable
-    console.log("Processing login for: " + username)
-    if len(username) > 0:
-        return True
-    return False
-"""
+            # Fetch real code from GitHub if available
+            code_to_analyze = ""
+            if repo_owner and repo_name and self.github_client.client:
+                logger.info(f"   📡 Fetching code from GitHub: {repo_owner}/{repo_name}")
+                files = self.github_client.get_pr_files(repo_owner, repo_name, pr_number)
+                
+                if files:
+                    # Combine all files for analysis (limit to first 5 files)
+                    for file in files[:5]:
+                        code_to_analyze += f"\n\n# File: {file['filename']}\n"
+                        code_to_analyze += file['content']
+                    logger.info(f"   ✅ Fetched {len(files)} files from GitHub")
+                else:
+                    logger.warning(f"   ⚠️  No code files found, using sample")
+                    code_to_analyze = self._get_sample_code()
+            else:
+                logger.info(f"   📝 Using sample code (no GitHub info)")
+                code_to_analyze = self._get_sample_code()
             
             # Run code analyzer
-            code_issues = self.code_analyzer.analyze_code(sample_code)
+            code_issues = self.code_analyzer.analyze_code(code_to_analyze)
             logger.info(f"   📋 Found {len(code_issues)} code issues")
             
             # Run LLM analyzer
@@ -113,7 +128,7 @@ def process_user_login(username):
             
             # Build result message
             result_message = f"""
-Phase 2 Analysis Complete:
+Phase 3 Analysis Complete (GitHub Integration):
 - Code Issues Found: {len(code_issues)}
 - AI Analysis: {llm_result['summary'][:200]}...
 
@@ -134,6 +149,15 @@ Details:
             }
             redis_client.cache_set(cache_key, json.dumps(cache_data), ttl=86400)  # 24 hours
             logger.info(f"   💾 Cached result for future requests")
+            
+            # POST COMMENT TO GITHUB
+            if repo_owner and repo_name and self.github_client.client:
+                comment = self._format_github_comment(code_issues, llm_result)
+                success = self.github_client.post_review_comment(
+                    repo_owner, repo_name, pr_number, comment
+                )
+                if success:
+                    logger.info(f"   💬 Posted review to GitHub")
             
             duration = time.time() - start_time
             logger.info(f"   📊 Issues: {len(code_issues)}")
@@ -159,15 +183,45 @@ Details:
             
             return False
     
+    def _get_sample_code(self):
+        """Get sample code for demo purposes"""
+        return """
+def process_user_login(username):
+    password = "hardcoded123"  # TODO: Move to environment variable
+    console.log("Processing login for: " + username)
+    if len(username) > 0:
+        return True
+    return False
+"""
+    
+    def _format_github_comment(self, code_issues, llm_result):
+        """Format a nice GitHub comment"""
+        comment = "## 🤖 AI Code Review\n\n"
+        
+        if code_issues:
+            comment += f"**Found {len(code_issues)} issues:**\n\n"
+            for issue in code_issues[:5]:  # Top 5 issues
+                emoji = "🔴" if issue['severity'] == 'high' else "🟡" if issue['severity'] == 'medium' else "🔵"
+                comment += f"{emoji} **{issue['type'].upper()}** (line {issue['line']}): {issue['message']}\n"
+            comment += "\n"
+        
+        comment += "**AI Analysis:**\n\n"
+        comment += llm_result['summary']
+        
+        comment += "\n\n---\n*Powered by CodeLlama AI*"
+        
+        return comment
+    
     def run(self):
         """Main worker loop - runs forever"""
-        logger.info(f"🚀 Worker {self.worker_id} started!")
+        logger.info(f"🚀 Worker {self.worker_id} started (Phase 3 - GitHub Enabled)!")
         logger.info(f"   📡 Polling queue: {settings.REDIS_QUEUE_NAME}")
         logger.info(f"   ⏱️  Poll interval: 5 seconds")
         logger.info(f"   🔗 Redis: {settings.REDIS_HOST}")
         logger.info(f"   🗄️  Database: {settings.POSTGRES_HOST}")
         logger.info(f"   🤖 AI Model: codellama")
         logger.info(f"   ⚡ Caching: Enabled (24h TTL)")
+        logger.info(f"   🐙 GitHub: {'Enabled' if self.github_client.client else 'Disabled'}")
         logger.info("")
         logger.info(f"⏳ Worker {self.worker_id} waiting for jobs...")
         
