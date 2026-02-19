@@ -76,6 +76,24 @@ class RedisClient:
             return self.client.ping()
         except:
             return False
+        
+    def cache_get(self, key):
+        """Get cached value"""
+        try:
+            return self.client.get(f"cache:{key}")
+        except Exception as e:
+            logger.error(f"Cache get failed for {key}: {e}")
+            return None
+    
+    def cache_set(self, key, value, ttl=3600):
+        """Set cached value with TTL (default 1 hour)"""
+        try:
+            self.client.setex(f"cache:{key}", ttl, value)
+            logger.info(f"Cached: {key} (TTL: {ttl}s)")
+            return True
+        except Exception as e:
+            logger.error(f"Cache set failed for {key}: {e}")
+            return False
 
 
 # Global Redis client

@@ -19,6 +19,10 @@ class Settings:
     POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "dev_password")
     
+    # Ollama Configuration
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
+    OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
+    
     # Logging
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     
