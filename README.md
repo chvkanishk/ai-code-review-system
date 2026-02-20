@@ -5,7 +5,7 @@
 ![System Status](https://img.shields.io/badge/status-production--ready-brightgreen)
 ![AI Powered](https://img.shields.io/badge/AI-CodeLlama-blue)
 ![Architecture](https://img.shields.io/badge/architecture-microservices-orange)
-![License](https://img.shields.io/badge/license-MIT-blue)
+
 
 **An intelligent, distributed code review system that automatically analyzes GitHub pull requests using AI and provides instant feedback.**
 
@@ -402,12 +402,6 @@ Contributions welcome! Please:
 
 ---
 
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details
-
----
-
 ## 👨‍💻 Author
 
 **Kanishk Chavan**
@@ -459,6 +453,6 @@ This project demonstrates:
 
 **⭐ Star this repo if you found it helpful!**
 
-Built with ❤️ by Kanishk Chavan
+Built by venkata Kanishk chaganti
 
 </div>
