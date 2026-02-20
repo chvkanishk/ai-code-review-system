@@ -13,6 +13,7 @@ from shared import redis_client, settings, SessionLocal, PRAnalysis
 from app.code_analyzer import CodeAnalyzer
 from app.llm_analyzer import LLMAnalyzer
 from app.github_client import GitHubClient
+from app.slack_notifier import SlackNotifier
 
 # Setup logging
 logging.basicConfig(
@@ -32,6 +33,7 @@ class Worker:
         self.code_analyzer = CodeAnalyzer()
         self.llm_analyzer = LLMAnalyzer()
         self.github_client = GitHubClient()
+        self.slack_notifier = SlackNotifier()
         self.running = True
         logger.info(f"🤖 Worker {self.worker_id} initialized (Phase 3 - with GitHub)")
     
@@ -158,8 +160,22 @@ Details:
                 )
                 if success:
                     logger.info(f"   💬 Posted review to GitHub")
+        
             
             duration = time.time() - start_time
+
+            # SEND SLACK NOTIFICATION - ADD THIS!
+            self.slack_notifier.send_review_notification(
+                pr_number=pr_number,
+                pr_title=pr_title,
+                repo_owner=repo_owner,
+                repo_name=repo_name,
+                issues_count=len(code_issues),
+                ai_summary=llm_result['summary'],
+                processing_time=duration
+            )
+
+
             logger.info(f"   📊 Issues: {len(code_issues)}")
             logger.info(f"   💬 AI: {llm_result['summary'][:80]}...")
             logger.info(f"✅ Completed in {duration:.2f}s")

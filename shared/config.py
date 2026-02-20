@@ -23,9 +23,12 @@ class Settings:
     OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
     OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 
-    # GitHub Configuration - ADD THIS!
+    # GitHub Configuration
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
     
+    # Slack Configuration - ADD THIS!
+    SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+
     # Logging
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     
